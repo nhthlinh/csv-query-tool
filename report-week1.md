@@ -14,13 +14,17 @@
 ## Idea
 
 1. Command-line interface
-  - Implement a funtion to parse command-line arguments (include CSV file name and quuery).
   - Check if the command-line arguments is corect.
   - Handle incorect input.
 2. Query parsing
+  - Implement a funtion to parse command-line arguments (include CSV file name and quuery).
   - Develop a query parser that can recognize SELECT and INSERT statements.
   - Extract the necessary information such as CSV file name, data to insert, columns to select,...
 3. CSV Reading
-  - 
+  - Write a funtion to read and store data in the CSV file
+  - Store data in a structure like arrays, linked list,...
+  - Handle the header rows to display the data in table with name of the data such as id, first_name,...
 4. Query Execution
-
+  - Process SELECT and INSERT query
+  - SELECT: retrive the specified columns of data bases on the statement.
+  - INSERT: add new data to the CSV file.
