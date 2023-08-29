@@ -2,17 +2,18 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include <regex>
+#include <vector>
 
+using namespace std;
 
-void insert(std::string statement) {
+void insert(std::string statement, std::string &file_name) {
     size_t pos = statement.find("(");
     if (pos == std::string::npos) {
         std::cout<<"Wrong command!"<<std::endl;
         return;
     }
 
-    std::string file_name = statement.substr(0, pos);
+    file_name = statement.substr(0, pos);
     statement = statement.substr(pos+1);
 
     pos = statement.find(")");
@@ -43,9 +44,40 @@ void insert(std::string statement) {
     std::cout<<table_name<<" "<<file_name<<" "<<value_name<<std::endl;
 }
 
-void display(std::string file_name) {
-    std::fstream file(file_name, std::ios::in);
+void display(std::string fname) {
+    // std::fstream file(file_name.c_str(), std::ios::in);
+    // std::string line = "";
 
+    // if (file.is_open()) s
+    
+    std::vector<std::vector<std::string>> content;
+	std::vector<std::string> row;
+	std::string line, word;
+ 
+	std::fstream file; 
+    file.open(fname, ios::in); 
+	if(file.is_open())
+	{
+		while(getline(file, line))
+		{
+			row.clear();
+ 
+			std::stringstream str(line);
+ 
+			while(getline(str, word, ',')) row.push_back(word);
+			content.push_back(row);
+		}
+	}
+	else std::cout<<"Could not open the file\n";
+ 
+	for(int i=0;i<content.size();i++)
+	{std::cout<<1;
+		for(int j=0;j<content[i].size();j++)
+		{
+			std::cout<<content[i][j]<<" ";
+		}
+		std::cout<<"\n";
+	}
 }
 
 int main(int argc, char* argv[]) {
@@ -56,6 +88,7 @@ int main(int argc, char* argv[]) {
     }
     
     std::string statement = argv[1];
+    std::string file_name = "";
 
     size_t pos = statement.find("INSERT INTO ");
     if (pos == std::string::npos) {
@@ -64,8 +97,10 @@ int main(int argc, char* argv[]) {
     } 
     else {
         statement = statement.substr(pos+12);
-        insert(statement);
+        insert(statement, file_name);
     }
     
+    display("data.scv");
+
     return 0;
 }
