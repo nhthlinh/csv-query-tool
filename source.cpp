@@ -5,9 +5,43 @@
 #include <regex>
 
 
-// void insert(std::string command) {
+void insert(std::string statement) {
+    size_t pos = statement.find("(");
+    if (pos == std::string::npos) {
+        std::cout<<"Wrong command!"<<std::endl;
+        return;
+    }
 
-// }
+    std::string file_name = statement.substr(0, pos);
+    statement = statement.substr(pos+1);
+
+    pos = statement.find(")");
+    if (pos == std::string::npos) {
+        std::cout<<"Wrong command!"<<std::endl;
+        return;
+    }
+
+    std::string table_name = statement.substr(0, pos);
+    statement = statement.substr(pos+1);
+
+    pos = statement.find("VALUES ");
+    if (pos == std::string::npos) {
+        std::cout<<"Wrong command!"<<std::endl;
+        return;
+    }
+
+    statement = statement.substr(pos+7);
+
+    pos = statement.find(")");
+    if (pos == std::string::npos) {
+        std::cout<<"Wrong command!"<<std::endl;
+        return;
+    }
+
+    std::string value_name = statement.substr(1, pos-1);
+
+    std::cout<<table_name<<" "<<file_name<<" "<<value_name<<std::endl;
+}
 
 void display(std::string file_name) {
     std::fstream file(file_name, std::ios::in);
@@ -28,50 +62,10 @@ int main(int argc, char* argv[]) {
         std::cout<<"Wrong command!"<<std::endl;
         return 1;
     } 
-
-    statement = statement.substr(pos+12);
+    else {
+        statement = statement.substr(pos+12);
+        insert(statement);
+    }
     
-    pos = statement.find("(");
-    if (pos == std::string::npos) {
-        std::cout<<"Wrong command!"<<std::endl;
-        return 1;
-    }
-
-    std::string file_name = statement.substr(0, pos);
-    statement = statement.substr(pos+1);
-
-    pos = statement.find(")");
-    if (pos == std::string::npos) {
-        std::cout<<"Wrong command!"<<std::endl;
-        return 1;
-    }
-
-    std::string table_name = statement.substr(0, pos);
-    statement = statement.substr(pos+1);
-
-    pos = statement.find("VALUES ");
-    if (pos == std::string::npos) {
-        std::cout<<"Wrong command!"<<std::endl;
-        return 1;
-    }
-
-    statement = statement.substr(pos+7);
-
-    std::cout<<statement<<std::endl;
-
-    pos = statement.find("(");
-    if (pos == std::string::npos) {
-        std::cout<<"Wrong command!"<<std::endl;
-        return 1;
-    }
-
-    std::string file_name = statement.substr(0, pos);
-    statement = statement.substr(pos+1);
-
-    pos = statement.find(")");
-    if (pos == std::string::npos) {
-        std::cout<<"Wrong command!"<<std::endl;
-        return 1;
-    }
     return 0;
 }
