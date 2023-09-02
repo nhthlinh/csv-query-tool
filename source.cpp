@@ -44,8 +44,39 @@ void insert(std::string statement) {
 }
 
 void display(std::string file_name) {
-    std::fstream file(file_name, std::ios::in);
+    std::vector<std::vector<std::string>> content;
+    std::vector<std::string> row;
+	std::string line, word;
+ 
+	std::ifstream file(fname);
+    getline(file, line);
+	if(file.is_open())
+	{
+		while(getline(file, line))
+		{
+			std::stringstream str(line);
+ 
+			while(getline(str, word, ',')) row.push_back(word);
 
+            content.push_back(row);
+		}
+    }
+	else std::cout<<"Could not open the file\n";
+ 
+	for(int i=0;i<content.size();i++)
+	{
+		for(int j=0;j<content[i].size();j++)
+		{
+			std::cout<<content[i][j]<<" ";
+		}
+		std::cout<<"\n";
+	}
+
+    // getline(file, line);
+    // while (getline(file, line)) {
+    //     cout << line << endl;
+    // }
+    file.close();
 }
 
 int main(int argc, char* argv[]) {
