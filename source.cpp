@@ -2,17 +2,18 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include <regex>
+#include <vector>
 
+using namespace std;
 
-void insert(std::string statement) {
+void insert(std::string statement, std::string &file_name) {
     size_t pos = statement.find("(");
     if (pos == std::string::npos) {
         std::cout<<"Wrong command!"<<std::endl;
         return;
     }
 
-    std::string file_name = statement.substr(0, pos);
+    file_name = statement.substr(0, pos-1);
     statement = statement.substr(pos+1);
 
     pos = statement.find(")");
@@ -40,42 +41,40 @@ void insert(std::string statement) {
 
     std::string value_name = statement.substr(1, pos-1);
 
-    std::cout<<table_name<<" "<<file_name<<" "<<value_name<<std::endl;
+    //std::cout<<table_name<<file_name<<value_name<<std::endl;
 }
 
-void display(std::string file_name) {
+void display(std::string fname) {
     std::vector<std::vector<std::string>> content;
     std::vector<std::string> row;
-	std::string line, word;
+    std::string line, word;
  
-	std::ifstream file(fname);
+    std::ifstream file(fname);
     getline(file, line);
-	if(file.is_open())
-	{
-		while(getline(file, line))
+    if(file.is_open())
+    {
+	while(getline(file, line))
 		{
 			std::stringstream str(line);
  
 			while(getline(str, word, ',')) row.push_back(word);
 
             content.push_back(row);
+
+            row.clear();
 		}
     }
-	else std::cout<<"Could not open the file\n";
+    else std::cout<<"Could not open the file\n";
  
-	for(int i=0;i<content.size();i++)
+    for(int i=0;i<content.size();i++)
 	{
-		for(int j=0;j<content[i].size();j++)
-		{
-			std::cout<<content[i][j]<<" ";
-		}
-		std::cout<<"\n";
+	    for(int j=0;j<content[i].size();j++)
+	    {
+		std::cout<<content[i][j]<<" ";
+	    }
+	    std::cout<<"\n";
 	}
 
-    // getline(file, line);
-    // while (getline(file, line)) {
-    //     cout << line << endl;
-    // }
     file.close();
 }
 
@@ -87,6 +86,7 @@ int main(int argc, char* argv[]) {
     }
     
     std::string statement = argv[1];
+    std::string file_name = "";
 
     size_t pos = statement.find("INSERT INTO ");
     if (pos == std::string::npos) {
@@ -95,8 +95,10 @@ int main(int argc, char* argv[]) {
     } 
     else {
         statement = statement.substr(pos+12);
-        insert(statement);
+        insert(statement, file_name);
     }
     
+    display(file_name);
+
     return 0;
 }
