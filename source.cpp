@@ -7,24 +7,32 @@
 
 using namespace std;
 
-enum TokenType {ACTION, INTO, FROM, VALUES, ID, LPAREN, RPAREN, COMMA, ERROR};
+enum TokenType {ACTION, INTO, FROM, VALUES, WHERE, FILENAME, ID, LPAREN, RPAREN, COMMA};
 
 struct Token {
     TokenType type;
     string value;
 };
 
+string tokentype_name(Token T) {
+    switch (T.type) {
+        case 0: return "ACTION";
+        case 1: return "INTO";
+        case 2: return "FROM";
+        case 3: return "VALUES";
+        case 4: return "WHERE";
+        case 5: return "ID";
+        case 6: return "LPAREN";
+        case 7: return "RPAREN";
+        case 8: return "COMMA";
+    }
+    return "";
+}
+
 vector<Token> extract(string input) {
     vector<Token> tokens;
 
-    /*
-    \\b: ký tự thoát
-    (INSERT|SELECT|INTO|FROM|VALUES|\\w+): tìm kiếm các từ INSERT SELECT INTO FROM VALUES  hoặc bất kỳ từ nào chứa ký tự word
-    |: toán tử OR
-    \\(|\\)
-    */ 
-
-    regex tokenRegex("\\b(INSERT|SELECT)\\sINTO\\.csv$\\s([\\w\\.]+)\\sVALUES\\s\\(([^)]+)\\|FROM\\s([\\w\\.]+)|([A-Za-z_][A-Za-z_0-9]*)|^\\d+(,\\d+)*$");
+    regex tokenRegex("(INSERT|SELECT|INTO|FROM|\\w+\.csv|\\w+)");
     smatch match;
 
     string::const_iterator start = input.cbegin();
@@ -41,16 +49,21 @@ vector<Token> extract(string input) {
                 else if (token.value == "INTO") token.type = INTO;
                 else if (token.value == "FROM") token.type = FROM;
                 else if (token.value == "VALUES") token.type = VALUES;
-                else token.type = ID;
-                else {
-                switch (token.value[0]) {
-                    case '(' : token.type = LPAREN; break;
-                    case ')' : token.type = RPAREN; break;
-                    case ',' : token.type = COMMA; break;
+                else if (token.value == "WHERE") token.type = WHERE;
+                else if (token.value == "(" && token.value == ")" && token.value == ",") {
+                    switch (token.value[0]) {
+                        case '(' : token.type = LPAREN; break;
+                        case ')' : token.type = RPAREN; break;
+                        case ',' : token.type = COMMA; break;
+                    };
                 }
+                else if (token.value.length() >= 5) {
+                    if (token.value.substr(token.value.length()-4) == ".csv") token.type = FILENAME; cout<<2;
+                }
+                else token.type = ID;
 
                 tokens.push_back(token);
-                cout<<token.value<<" "<<to_string(token.type)<<endl;
+                //cout<<token.value<<" "<<tokentype_name(token)<<endl;
                 start = match[i].second;
                 
                 break;
@@ -169,10 +182,10 @@ int main(int argc, char* argv[]) {
     string statement = argv[1];
     string file_name = "";
 
-    vector<Token> tokens = extract("SELECT id, name, email, phone FROM ( SELECT id, name, email, age, phone FROM member.csv WHERE age > 2 ) WHERE name LIKE '%Vinh%'");
-    // for (Token token:tokens) {
-    //     cout<< token.type << " " <<token.value <<"\n";
-    // }
+    vector<Token> tokens = extract(statement);
+    for (Token token:tokens) {
+        cout<< tokentype_name(token) << " " <<token.value <<"\n";
+    }
 
     //display(file_name);
 
