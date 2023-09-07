@@ -7,7 +7,7 @@
 
 using namespace std;
 
-enum TokenType {ACTION, INTO, FROM, VALUES, WHERE, FILENAME, ID, LPAREN, RPAREN, COMMA};
+enum TokenType {ACTION, INTO, FROM, VALUES, WHERE, FILENAME, ID, LIKE};
 
 struct Token {
     TokenType type;
@@ -21,18 +21,17 @@ string tokentype_name(Token T) {
         case 2: return "FROM";
         case 3: return "VALUES";
         case 4: return "WHERE";
-        case 5: return "ID";
-        case 6: return "LPAREN";
-        case 7: return "RPAREN";
-        case 8: return "COMMA";
+        case 5: return "FILENAME";
+        case 6: return "ID";
+        case 7: return "LIKE";
     }
     return "";
 }
 
 vector<Token> extract(string input) {
     vector<Token> tokens;
-
-    regex tokenRegex("(INSERT|SELECT|INTO|FROM|\\w+\.csv|\\w+)");
+/*           */  
+    regex tokenRegex("(INSERT|SELECT|INTO|FROM|LIKE|VALUES|\\w+\.csv|\\w+)");
     smatch match;
 
     string::const_iterator start = input.cbegin();
@@ -50,20 +49,13 @@ vector<Token> extract(string input) {
                 else if (token.value == "FROM") token.type = FROM;
                 else if (token.value == "VALUES") token.type = VALUES;
                 else if (token.value == "WHERE") token.type = WHERE;
-                else if (token.value == "(" && token.value == ")" && token.value == ",") {
-                    switch (token.value[0]) {
-                        case '(' : token.type = LPAREN; break;
-                        case ')' : token.type = RPAREN; break;
-                        case ',' : token.type = COMMA; break;
-                    };
-                }
+                else if (token.value == "LIKE") token.type = LIKE;
                 else if (token.value.length() >= 5) {
-                    if (token.value.substr(token.value.length()-4) == ".csv") token.type = FILENAME; cout<<2;
+                    if (token.value.substr(token.value.length()-4) == ".csv") token.type = FILENAME;
                 }
                 else token.type = ID;
 
                 tokens.push_back(token);
-                //cout<<token.value<<" "<<tokentype_name(token)<<endl;
                 start = match[i].second;
                 
                 break;
@@ -173,7 +165,6 @@ void display(string fname) {
 // };
 
 int main(int argc, char* argv[]) {
-
     if (argc != 2) {
         cout<<"Error"<<std::endl;
         return 1;
@@ -181,7 +172,7 @@ int main(int argc, char* argv[]) {
     
     string statement = argv[1];
     string file_name = "";
-
+//string statement = ""; getline(cin,statement);
     vector<Token> tokens = extract(statement);
     for (Token token:tokens) {
         cout<< tokentype_name(token) << " " <<token.value <<"\n";
