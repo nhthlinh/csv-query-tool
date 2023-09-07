@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <regex>
+#include <iomanip>
 
 using namespace std;
 
@@ -30,8 +31,8 @@ string tokentype_name(Token T) {
 
 vector<Token> extract(string input) {
     vector<Token> tokens;
-/*           */  
-    regex tokenRegex("(INSERT|SELECT|INTO|FROM|LIKE|VALUES|\\w+\.csv|\\w+)");
+
+    regex tokenRegex("(INSERT|SELECT|INTO|FROM|LIKE|VALUES|\\w+\.csv|\"+\\w+\"|\\w+)");
     smatch match;
 
     string::const_iterator start = input.cbegin();
@@ -52,6 +53,7 @@ vector<Token> extract(string input) {
                 else if (token.value == "LIKE") token.type = LIKE;
                 else if (token.value.length() >= 5) {
                     if (token.value.substr(token.value.length()-4) == ".csv") token.type = FILENAME;
+                    else token.type = ID;
                 }
                 else token.type = ID;
 
@@ -69,9 +71,14 @@ void display(string fname) {
     vector<vector<string>> content;
 	vector<string> row;
 	string line, word;
+    vector<string> column_name;
  
 	ifstream file(fname);
-    getline(file, line);
+
+    getline(file, line); 
+    stringstream str(line);
+    while (getline(str, word, ',')) column_name.push_back(word);
+
 	if(file.is_open())
 	{
 		while(getline(file, line))
@@ -87,11 +94,15 @@ void display(string fname) {
     }
 	else cout<<"Could not open the file\n";
  
-	for(int i=0;i<content.size();i++)
+    for (int i=0; i<column_name.size(); i++) {
+        cout<<left<<setw(25)<<column_name[i]<<" ";
+    }
+    cout<<"\n";
+	for (int i=0; i<content.size(); i++)
 	{
 		for(int j=0;j<content[i].size();j++)
 		{
-			cout<<content[i][j]<<" ";
+			cout<<left<<setw(25)<<content[i][j]<<" ";
 		}
 		cout<<"\n";
 	}
@@ -99,70 +110,75 @@ void display(string fname) {
     file.close();
 }
 
-// class Expr {
-//     virtual string toString() const = 0;
-// };
+class Expr {
+    virtual string toString() const = 0;
+};
 
-// class RelationalExpr : public Expr {
-// public:
-//     string colName;
-//     short int operator;
-//     string value;
-// public:
-//     string toString() const {
-//         // TODO
-//     }
-// };
+class RelationalExpr : public Expr {
+public:
+    string colName;
+    short int operator;
+    string value;
+public:
+    string toString() const {
+        // TODO
+        return "";
+    }
+};
 
-// class LogicalExpr : public Expr {
-// public:
-//     RelationalExpr* expr1;
-//     short int operator;
-//     RelationalExpr* expr2;
-// public:
-//     string toString() const {
-//         // TODO
-//     }
-// };
+class LogicalExpr : public Expr {
+public:
+    RelationalExpr* expr1;
+    short int operator;
+    RelationalExpr* expr2;
+public:
+    string toString() const {
+        // TODO
+        return "";
+    }
+};
 
-// class SortBy {
-// public:
-//     string columnName;
-//     short int order;
-// public:
-//     string toString() const {
-//         // TODO
-//     }
-// };
+class SortBy {
+public:
+    string columnName;
+    short int order;
+public:
+    string toString() const {
+        // TODO
+        return "";
+    }
+};
 
-// class Command {
-// public:
-//     virtual string toString() const = 0;
-// };
+class Command {
+public:
+    virtual string toString() const = 0;
+};
 
-// class InsertCommand : public Command {
-// public:
-//     string filename;
-//     vector<string> columnNames;
-//     vector<string> values;
-// public:
-//     string toString() const {
-//         // TODO
-//     }
-// };
+class InsertCommand : public Command {
+public:
+    string filename;
+    vector<string> columnNames;
+    vector<string> values;
+public:
+    string toString() const {
+        // TODO
+        return "";
+    }
+};
 
-// // class SelectCommand : public Command {
-// public:
-//     vector<string> columnNames;
-//     void* dataSource;
-//     Expr* expr;
-//     SortBy* sort;
+class SelectCommand : public Command {
+public:
+    vector<string> columnNames;
+    void* dataSource;
+    Expr* expr;
+    SortBy* sort;
 
-// public:
-//     string toString() const {
-//         // TODO
-//     }
-// };
+public:
+    string toString() const {
+        // TODO
+        return "";
+    }
+};
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -172,13 +188,14 @@ int main(int argc, char* argv[]) {
     
     string statement = argv[1];
     string file_name = "";
-//string statement = ""; getline(cin,statement);
+
     vector<Token> tokens = extract(statement);
     for (Token token:tokens) {
-        cout<< tokentype_name(token) << " " <<token.value <<"\n";
+        //cout<< tokentype_name(token) << " " <<token.value <<"\n";
+        if (token.type == FILENAME) file_name = token.value;
     }
 
-    //display(file_name);
+    display(file_name);
 
     return 0;
 }
