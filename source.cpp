@@ -32,38 +32,37 @@ string tokentype_name(Token T) {
 vector<Token> extract(string input) {
     vector<Token> tokens;
 
-    regex tokenRegex("(INSERT|SELECT|INTO|FROM|LIKE|VALUES|\\w+\.csv|\"+\\w+\"|\\w+)");
-    smatch match;
+    regex tokenRegex("INSERT|SELECT|INTO|FROM|LIKE|VALUES|\\w+\.csv|([\"].*?[\"0-9]+|A-Za-z0-9]+)|\\w+\.\\w+|\\w+");
 
-    string::const_iterator start = input.cbegin();
-    string::const_iterator end = input.cend();
+    sregex_iterator it(input.begin(), input.end(), tokenRegex);
+    sregex_iterator end;
 
-    while (regex_search(start, end, match, tokenRegex)) {
+    while (it!=end) {
+        smatch match = *it;
+        string t = match.str();
 
-        for (int i=1; i<match.size(); ++i) {
-            if (!match[i].str().empty()) {
-                Token token;
-                token.value = match[i].str();
+        if (t.front() == '"' && t.back() == '"') t = t.substr(1, t.length() - 2);
 
-                if (token.value == "INSERT" || token.value == "SELECT") token.type = ACTION;
-                else if (token.value == "INTO") token.type = INTO;
-                else if (token.value == "FROM") token.type = FROM;
-                else if (token.value == "VALUES") token.type = VALUES;
-                else if (token.value == "WHERE") token.type = WHERE;
-                else if (token.value == "LIKE") token.type = LIKE;
-                else if (token.value.length() >= 5) {
-                    if (token.value.substr(token.value.length()-4) == ".csv") token.type = FILENAME;
-                    else token.type = ID;
-                }
-                else token.type = ID;
+        Token token;
+        token.value = t;
 
-                tokens.push_back(token);
-                start = match[i].second;
-                
-                break;
-            } 
+        if (token.value == "INSERT" || token.value == "SELECT") token.type = ACTION;
+        else if (token.value == "INTO") token.type = INTO;
+        else if (token.value == "FROM") token.type = FROM;
+        else if (token.value == "VALUES") token.type = VALUES;
+        else if (token.value == "WHERE") token.type = WHERE;
+        else if (token.value == "LIKE") token.type = LIKE;
+        else if (token.value.length() >= 5) {
+            if (token.value.substr(token.value.length()-4) == ".csv") token.type = FILENAME;
+            else token.type = ID;
         }
+        else token.type = ID;
+
+
+        tokens.push_back(token);
+        ++it;
     }
+
     return tokens;
 }
 
@@ -117,19 +116,19 @@ class Expr {
 class RelationalExpr : public Expr {
 public:
     string colName;
-    short int operator;
+    short int op;
     string value;
 public:
     string toString() const {
         // TODO
-        return "";
+        return colName + " " + to_string(op) + value;
     }
 };
 
 class LogicalExpr : public Expr {
 public:
     RelationalExpr* expr1;
-    short int operator;
+    short int op;
     RelationalExpr* expr2;
 public:
     string toString() const {
@@ -152,6 +151,7 @@ public:
 class Command {
 public:
     virtual string toString() const = 0;
+    virtual void do_action() = 0;
 };
 
 class InsertCommand : public Command {
@@ -160,9 +160,104 @@ public:
     vector<string> columnNames;
     vector<string> values;
 public:
+    InsertCommand(vector<Token> T) { 
+        this->filename = "";
+        this->columnNames.clear();
+        this->values.clear();
+
+        if (T.size() <= 3 || T[0].value != "INSERT" || T[1].type != INTO || T[2].type != FILENAME) cout<<"ERROR!";
+        else if (T[2].type == FILENAME) {
+            this->filename = T[2].value;
+
+            int i = 3, j = 0;
+            if (T[3].type == ID) {
+                while (T[i].type == ID) { 
+                    this->columnNames.push_back(T[i].value); 
+                    ++i;
+                }
+                if (T[i].type == VALUES) {
+                    i += 1;
+                    while (T[i].type == ID) {
+                        this->values.push_back(T[i].value);
+                        ++i;
+                    }
+                }
+                else {
+                    cout<<"ERROR!";
+                    this->filename = "";
+                    this->columnNames.clear();
+                    this->values.clear();
+                }
+            }
+            else if (T[i].type == VALUES) {
+                i += 1;
+                if (T[i].type == ID) {
+                    while (T[i].type == ID) {
+                        this->values.push_back(T[i].value);
+                        ++i;
+                    }
+                }
+                else {
+                    cout<<"ERROR!";
+                    this->filename = "";
+                    this->columnNames.clear();
+                    this->values.clear();
+                }
+            }
+            else {
+                cout<<"ERROR!";
+                this->filename = "";
+                this->columnNames.clear();
+                this->values.clear();
+            }
+        }
+
+        if (this->check_condition()) this->do_action();
+    }
     string toString() const {
-        // TODO
-        return "";
+        if (this->filename != "") cout<<this->filename<<"----";
+        if (!this->columnNames.empty()) {
+            cout<<endl;
+            for (int i=0; i<this->columnNames.size(); i++) cout<<this->columnNames[i]<<"-----";
+        }
+        if (!this->values.empty()) {
+            cout<<endl;
+            for (int i=0; i<this->values.size(); i++) cout<<this->values[i]<<"-----";
+            cout<<endl;
+        }
+        return " ";
+    }
+    void do_action() {
+        bool newfile = false;
+        ofstream file(this->filename, ios::app);
+        if (!file) {
+            file.open(this->filename);
+        } 
+
+        file.seekp(0, ios::end);
+        streampos file_size = file.tellp();
+        //if (file.tellp() != 0) file<<"\n"; //co dang o dau dong khong
+        if (file_size ==0) { 
+            if (!this->columnNames.empty()) {
+                cout<<3;
+                for (int i=0; i<this->columnNames.size(); i++) {
+                    if (i == 0) file<<this->columnNames[i];
+                    else file<<","<<this->columnNames[i];
+                }
+            }
+        }
+        if (file.tellp() != 0) file<<"\n";
+        for (int i=0; i<this->values.size(); i++) {
+            if (i == 0) file<<this->values[i];
+            else file<<","<<this->values[i];
+        }
+
+
+        file.close();
+        display(this->filename);
+    }
+    bool check_condition() {
+        return (this->filename != "") && !this->values.empty();
     }
 };
 
@@ -180,6 +275,24 @@ public:
     }
 };
 
+void build_parse_tree(vector<Token> T) {
+    bool is_insert_cm = false;
+    bool is_select_cm = false;
+
+    Command* command;
+    if (T[0].type == ACTION) {
+        if (T[0].value == "INSERT") {
+            is_insert_cm = true;
+            command = new InsertCommand(T);
+        }
+        else if (T[0].value == "SELECT") {
+            is_select_cm = true;
+            //command = new SelectCommand();
+        }
+    }
+    else cout<<"ERROR!";
+}
+
 int main(int argc, char* argv[]) {
     if (argc != 2) {
         cout<<"Error"<<std::endl;
@@ -190,12 +303,14 @@ int main(int argc, char* argv[]) {
     string file_name = "";
 
     vector<Token> tokens = extract(statement);
-    for (Token token:tokens) {
-        //cout<< tokentype_name(token) << " " <<token.value <<"\n";
-        if (token.type == FILENAME) file_name = token.value;
-    }
 
-    display(file_name);
+    // for (Token token:tokens) {
+    //     cout<< tokentype_name(token) << "----" <<token.value <<"\n";
+    //     if (token.type == FILENAME) file_name = token.value;
+    // }
 
+    build_parse_tree(tokens);
+
+    cout<<endl;
     return 0;
 }
