@@ -8,6 +8,8 @@
 
 using namespace std;
 
+string statement;
+
 enum TokenType {ACTION, INTO, FROM, VALUES, WHERE, FILENAME, ID, LIKE};
 
 struct Token {
@@ -215,17 +217,18 @@ public:
         if (this->check_condition()) this->do_action();
     }
     string toString() const {
-        if (this->filename != "") cout<<this->filename<<"----";
+        string ans = "";
+        if (this->filename != "") ans = ans + this->filename + "----";
         if (!this->columnNames.empty()) {
-            cout<<endl;
-            for (int i=0; i<this->columnNames.size(); i++) cout<<this->columnNames[i]<<"-----";
+            ans = ans + "\n";
+            for (int i=0; i<this->columnNames.size(); i++) ans = ans + this->columnNames[i] + "-----";
         }
         if (!this->values.empty()) {
-            cout<<endl;
-            for (int i=0; i<this->values.size(); i++) cout<<this->values[i]<<"-----";
-            cout<<endl;
+            ans = ans + "\n";
+            for (int i=0; i<this->values.size(); i++) ans = ans + this->values[i] + "-----";
+            ans = ans + "\n";
         }
-        return " ";
+        return ans;
     }
     void do_action() {
         bool newfile = false;
@@ -239,7 +242,7 @@ public:
         //if (file.tellp() != 0) file<<"\n"; //co dang o dau dong khong
         if (file_size ==0) { 
             if (!this->columnNames.empty()) {
-                cout<<3;
+                
                 for (int i=0; i<this->columnNames.size(); i++) {
                     if (i == 0) file<<this->columnNames[i];
                     else file<<","<<this->columnNames[i];
@@ -247,11 +250,37 @@ public:
             }
         }
         if (file.tellp() != 0) file<<"\n";
-        for (int i=0; i<this->values.size(); i++) {
-            if (i == 0) file<<this->values[i];
-            else file<<","<<this->values[i];
-        }
 
+        if (this->columnNames.size() == this->values.size()) {
+            for (int i=0; i<this->values.size(); i++) {
+                if (i == 0) file<<this->values[i];
+                else file<<","<<this->values[i];
+            }
+        }
+        else {
+            this->columnNames.clear();
+            this->values.clear();
+
+            string s = statement, word, cN, vL;
+            size_t pos = s.find('(');
+            if (pos != string::npos) s = s.substr(pos+1); 
+            pos = s.find(')');
+            if (pos != string::npos) cN = s.substr(0, pos);
+            pos = s.find('(');
+            if (pos != string::npos) s = s.substr(pos+1); 
+            pos = s.find(')');
+            if (pos != string::npos) vL = s.substr(0, pos);
+
+            stringstream ss1(cN);
+            while (getline(ss1, word, ',')) this->columnNames.push_back(word);
+            stringstream ss2(vL);
+            while (getline(ss2, word, ',')) this->values.push_back(word);
+
+            for (int i=0; i<this->values.size(); i++) {
+                if (i == 0) file<<this->values[i];
+                else file<<","<<this->values[i];
+            }
+        }
 
         file.close();
         display(this->filename);
@@ -269,9 +298,23 @@ public:
     SortBy* sort;
 
 public:
+    SelectCommand(vector<Token> T) {
+        this->columnNames.clear();
+        this->dataSource = nullptr;
+        this->expr = nullptr;
+        this->sort = nullptr;
+
+        if (T[0].value == "SELECT") {
+
+        }
+        else cout<<"ERROR!";
+    }
     string toString() const {
         // TODO
         return "";
+    }
+    void do_action() {
+
     }
 };
 
@@ -287,7 +330,7 @@ void build_parse_tree(vector<Token> T) {
         }
         else if (T[0].value == "SELECT") {
             is_select_cm = true;
-            //command = new SelectCommand();
+            command = new SelectCommand(T);
         }
     }
     else cout<<"ERROR!";
@@ -299,15 +342,14 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
-    string statement = argv[1];
-    string file_name = "";
+    statement = argv[1];
 
     vector<Token> tokens = extract(statement);
 
-    // for (Token token:tokens) {
-    //     cout<< tokentype_name(token) << "----" <<token.value <<"\n";
-    //     if (token.type == FILENAME) file_name = token.value;
-    // }
+int i = 0;
+    for (Token token:tokens) {
+        cout<<i++<<"---" << tokentype_name(token) << "----" <<token.value <<"\n";
+    }
 
     build_parse_tree(tokens);
 
