@@ -133,10 +133,18 @@ public:
     RelationalExpr(string colName, string op, string value) {
         this->colName = colName;
         this->value = value;
+        if (op.size() == 1) {
+            if (op == "=") this->op = 1;
+            else if (op == ">") this->op =2;
+            else if (op == "<") this->op = 3;
+            else if (op == ">=") this->op = 4;
+            else if (op == "<=") this->op = 5;
+            else if (op == "LIKE") this->op = 6;
+        }
     }
     string toString() const {
         // TODO
-        return colName + " " + to_string(op) + value;
+        return colName + " " + to_string(op) + " " + value;
     }
 };
 
@@ -181,19 +189,19 @@ public:
         this->values.clear();
 
         if (T.size() <= 3 || T[0].value != "INSERT" || T[1].type != INTO || T[2].type != FILENAME) this->error();
-        else if (T[2].type == FILENAME) {
+        else if (T[2].type == FILENAME) { 
             this->filename = T[2].value;
             int i = 4, j = 0;
-            if (T[3].type == OPEN && T[4].type == ID) {
+            if (T[3].type == OPEN && T[4].type == ID) { 
                 while (T[i].type == ID) this->columnNames.push_back(T[i++].value);
-                if (T[i].type == CLOSE && T[i+=1].type == VALUES && T[i+=1].type == OPEN) {
+                if (T[i].type == CLOSE && T[i+=1].type == VALUES && T[i+=1].type == OPEN) { 
                     i+=1;
                     while (T[i].type == ID) this->values.push_back(T[i++].value);
                 }
                 else this->error();
             }
-            else if (T[i].type == VALUES) {
-                i += 1;
+            else if (T[i-=1].type == VALUES) { 
+                i += 2;
                 if (T[i].type == ID) {
                     while (T[i].type == ID) this->values.push_back(T[i++].value);
                 }
@@ -224,10 +232,11 @@ public:
         return ans;
     }
     void do_action() {
-        bool newfile = false;
-        ofstream file(this->filename, ios::app);
-        if (!file) {
-            file.open(this->filename);
+
+        fstream file(this->filename, ios::in | ios::out);
+        if (!file) { cout<<"Loi file";
+            this->error();
+            return;
         } 
 
         file.seekp(0, ios::end);
@@ -296,47 +305,17 @@ public:
         this->dataSource = nullptr;
         this->expr = nullptr;
         this->sort = nullptr;
-
-        if (T[2].type == ID && T[1].type == OPEN) {
-            int i = 2;
-            for ( ; T[i].type == ID; i++) this->columnNames.push_back(T[i].value);
-            if (T[i].type == CLOSE && T[i+=1].type == FROM) {
-                i+=1;
-
-                if (T[i].type == FILENAME) this->dataSource = &T[i++].value;
-                else if (T[i].type == OPEN && T[i+=1].value == "SELECT") { 
-                    int open = 1, close = 0, from = 0, where = 0; 
-                    vector<Token> source; 
-                    for (; i<T.size(); i++) {
-                        if (T[i].type == OPEN) open++;
-                        if (T[i].type == CLOSE) close++;
-                        if (T[i].type == FROM) from++;
-                        if (T[i].type == WHERE) where++;
-                        if (from >= 2 || where >=2) break;
-                        source.push_back(T[i]);
-                    }
-                    if (open != close) this->error();
-                    else this->dataSource = new SelectCommand(source);
-                }
-                else this->error();
-    
-                if (i < T.size()) {
-                    vector<Token> condition;
-                    while (i!=T.size()) {
-                        condition.push_back(T[i++]);
-                    }
-                    this->buile_condition(condition);
-                }
-                else {
-                    this->expr = nullptr;
-                    this->sort = nullptr;
-                }
-                
-            }
-            else this->error();
-        }
-        else this->error();
-        //this->toString();
+// QUERY = SELECT.(* + ID*).FROM.(FileName + QUERY) 
+//         + WHERE.CONDITION 
+//         + ORDER_BY.ID.(ASC+DSC+exilon)
+// CONDITION = RELATION.LOGICAL
+// RELATION = ID.relational.ID
+// LOGICAL = (logical.(ID.relational.ID))*
+//enum TokenType {ACTION, INTO, FROM, VALUES, WHERE, FILENAME, ID, OPERATION, SORT_BY, ORDER_BY, RELATION, OPEN, CLOSE};
+        regex where(R"(4676(10676)*)");
+        regex order_by(R"(96(8?))");
+        regex query_base(R"(0(\*|6+)254676(10676)*96(8?))");// + where.str() + order_by.str());
+        for (int i=0; i<T.size(); i++) cout<<T[i].type;
     }
     void error() {
         cout<<"ERROR!";
@@ -348,33 +327,39 @@ public:
     string toString() const {
         string s = "";
         int i = 0;
+        cout<<"Column name: ";
         while (!this->columnNames.empty()) {
-            cout<<this->columnNames[i]<<endl;
+            cout<<this->columnNames[i]<<" ";
             i++;
         }
+        cout<<endl;
+        // cout<<this->expr<<endl;
         return "";
     }
     void do_action() {
 
     }
     void buile_condition(vector<Token> T) {
-        int i = 1;
+        int i = 1; 
         if (T[0].type == WHERE) {
             for ( ; i<T.size(); i++) {
                 if (T[i].type == OPEN) i++;
                 if (T[i].type == ID) {
-                    string coln = T[i].value; cout<<coln<<endl;
-
-                    if (T[i+=1].type == OPERATION && T[i+=1].type == ID) {
-                        string value = T[i].value; cout<<value<<endl;
-                        string op = T[i-=1].value; cout<<op<<endl;
-                        i+=1;
-                        
-                        //this->expr = new RelationalExpr(coln, op, value);
+                    string coln = T[i].value; 
+                    int k = i;
+                    if (T[k+=1].type == OPERATION && T[k+=1].type == ID) {
+                        string value = T[k].value; 
+                        string op = T[k-=1].value; 
+                        k+=1;
+                        i = k;
+                
+                        this->expr = new RelationalExpr(coln, op, value);
                     }
                     else if (T[i+=1].type == OPERATION && T[i+=1].type == OPERATION && T[i+=1].type == ID) {
-                        string value = T[i].value; cout<<value<<endl;
-                        string op = T[i-=1].value; cout<<op<<endl;
+                        string value = T[i].value; 
+                        string a = T[i-=2].value; 
+                        string b = T[i+=1].value;
+                        string op = a+b;
                         i+=1;
                     }
                     else this->error();
@@ -384,6 +369,7 @@ public:
         if (T[i++].type == ORDER_BY) {
                 
         }
+        this->sort = nullptr;
     }
 };
 
@@ -392,12 +378,12 @@ void build_parse_tree(vector<Token> T) {
     bool is_select_cm = false;
 
     Command* command;
-    if (T[0].type == ACTION) {
+    if (T[0].type == ACTION) { 
         if (T[0].value == "INSERT") {
             is_insert_cm = true;
             command = new InsertCommand(T);
         }
-        else if (T[0].value == "SELECT") {
+        else if (T[0].value == "SELECT") { 
             is_select_cm = true;
             command = new SelectCommand(T);
         }
@@ -416,12 +402,14 @@ int main(int argc, char* argv[]) {
     vector<Token> tokens = extract(statement);
 
 int i = 0;
-    for (Token token : tokens) {
-        cout<<i++<<"---" << tokentype_name(token) << "----" <<token.value <<"\n";
-    }
+    // for (Token token : tokens) {
+    //     cout<<i++<<"---" << token.type << "----" <<token.value <<"\n";
+    // }
 
     build_parse_tree(tokens);
 
     cout<<endl;
     return 0;
 }
+
+// head -> SELECT -> ColumnName -> FROM -> 
